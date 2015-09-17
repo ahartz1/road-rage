@@ -9,7 +9,7 @@
 * If a driver would hit another car by continuing, they stop (i.e., potentially trigger a traffic jam).
 * Drivers will randomly (10% chance each second) slow by 2 m/s.
 * This section of road is one lane going one way.
-* Drivers enter the road at the speed limit.
+* Drivers enter the road at the speed they left.
 * Simulation starts with 30 cars per kilometer, evenly spaced.
 
 ## Normal Mode
