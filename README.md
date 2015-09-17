@@ -10,6 +10,7 @@
 * Drivers will randomly (10% chance each second) slow by 2 m/s.
 * This section of road is one lane going one way.
 * Drivers enter the road at the speed limit.
+* Simulation starts with 30 cars per kilometer, evenly spaced.
 
 ## Normal Mode
 We have a 1 kilometer section of road being built and do not know what the speed limit should be. This notebook simulates the 1 kilometer of road. Even though this road is not circular, the simulation treats it as such in order to generate a continuous flow of traffic. For your use in command-line applications, the `traffic_lib.py` library is in this repo.
