@@ -48,17 +48,17 @@ class Car:
                 self.speed = self.desired_speed
 
         self.location += self.speed
-        if 1000 <= self.location:
-            self.location -= 1000
-            return 'off the road'
-        return 'on the road'
+        if self.location >= 1000:
+            print("I'm off the road, man!")
+            return 'off_the_road'
+        else:
+            return 'on_the_road'
 
     def update_bumper(self):
-        if self.location >= self.size - 1:
+        if self.location - (self.size - 1) < 1000:
             self.bumper = self.location - (self.size - 1)
         else:
-            self.bumper = self.location - self.size + 1000
-            # Note that to make the bumper location correct, we need to add 1 when adding 1000
+            self.bumper = self.location - 1000 - (self.size - 1)
 
 
 class Road:
@@ -73,14 +73,10 @@ class Road:
     Collaborators:
     - Car
     """
-    def __init__(self, num_trucks=0):
-        self.total_vehicle_space = ((30 - num_trucks) * 5) + (num_trucks * 25)
+    def __init__(self):
+        self.total_vehicle_space = (30 * 5)
         self.initial_gap = int((1000 - self.total_vehicle_space) / 30)
-        self.vehicles = [Car((4 + int(33.333333333*n)), self.initial_gap) for n in range(30 - num_trucks)]
-
-        if num_trucks > 0:
-            [self.vehicles.append(Truck() for _ in range(num_trucks))]
-
+        self.vehicles = [Car((4 + int(33.333333333*n)), self.initial_gap) for n in range(30)]
         self.vehicles[-1].gap = (1000 - self.vehicles[-1].location)
 
 
@@ -115,10 +111,14 @@ class HighwaySim:
 
     def iterate(self):
         off_the_road = []
-        for idx in range(len(self.road.vehicles)):
-            v = self.road.vehicles[-idx - 1]
+        num_cars = len(self.road.vehicles)
+        for idx in range(num_cars):
+            v = self.road.vehicles[- idx - 1]
             if idx > 0:
                 car_ahead = deepcopy(self.road.vehicles[- idx])
+                if car_ahead.location < v.location:
+                    car_ahead.location + 1000
+                    car_ahead.update_bumper()
             else:
                 car_ahead = deepcopy(self.road.vehicles[0])
                 car_ahead.location += 1000
@@ -126,11 +126,16 @@ class HighwaySim:
                     car_ahead.location += car_ahead.gap
                 else:
                     car_ahead.location += car_ahead.speed
-                car_ahead.update_bumper()
+                car_ahead.bumper = car_ahead.location - (car_ahead.size - 1)
 
             if v.drive(car_ahead) == 'off the road':
-                off_the_road.insert(0, v)
-            v.gap = car_ahead.bumper - v.location
+                off_the_road.append(- idx - 1)
+
+            if car_ahead.bumper - v.location > 0:
+                v.gap = car_ahead.bumper - v.location
+            else:
+                v.gap = car_ahead.bumper + 1000 - v.location
+
             v.update_bumper()
 
             if v.speed == 0:
@@ -138,7 +143,7 @@ class HighwaySim:
             else:
                 self.is_traffic.append(False)
 
-        for _ in range(len(off_the_road)):
+        while len(off_the_road) > 0:
             off_car = self.road.vehicles.pop(-1)
             off_car.location -= 1000
             if off_car.location >= off_car.size - 1:
@@ -146,10 +151,7 @@ class HighwaySim:
             else:
                 off_car.bumper = off_car.location - (off_car.size -1) + 1000
             self.road.vehicles.insert(0, off_car)
-
-
-
-
+            off_the_road.pop(0)
 
 
 
