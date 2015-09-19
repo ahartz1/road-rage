@@ -47,10 +47,11 @@ class Car:
             if self.speed > self.desired_speed:
                 self.speed = self.desired_speed
 
-        self.update_location(car_ahead)
-
-    def update_location(self, car_ahead):
         self.location += self.speed
+        if 1000 <= self.location:
+            self.location -= 1000
+            return 'off the road'
+        return 'on the road'
 
     def update_bumper(self):
         if self.location >= self.size - 1:
@@ -81,17 +82,6 @@ class Road:
             [self.vehicles.append(Truck() for _ in range(num_trucks))]
 
         self.vehicles[-1].gap = (1000 - self.vehicles[-1].location)
-
-    def reinsert_car(self):
-        if 1000 <= self.vehicles[-1].location:
-            last_car = self.vehicles.pop(-1)
-            self.vehicles.insert(0, Car(last_car.location - 1000, last_car.gap))
-            if self.vehicles[0].location >= self.vehicles[0].size - 1:
-                self.vehicles[0].update_bumper()
-            else:
-                self.vehicles[0].bumper = self.vehicles[0].location - (self.vehicles[0].size -1) + 1000
-            return True
-        return False
 
 
 class HighwaySim:
@@ -124,6 +114,7 @@ class HighwaySim:
             return False
 
     def iterate(self):
+        off_the_road = []
         for idx, v in enumerate(self.road.vehicles):
             if idx > 0:
                 car_ahead = deepcopy(self.road.vehicles[- idx])
@@ -136,9 +127,9 @@ class HighwaySim:
                     car_ahead.location += car_ahead.speed
                 car_ahead.update_bumper()
 
-            v.drive(car_ahead)
-            self.road.reinsert_car()
-            v.gap = car_ahead.bumper - v.location
+            if v.drive(car_ahead) == 'off the road':
+                off_the_road.insert(0, v)
+            v.gap = car_ahead.bumper - v.location # Why is this so wrong?
             v.update_bumper()
 
             if v.speed == 0:
@@ -146,8 +137,14 @@ class HighwaySim:
             else:
                 self.is_traffic.append(False)
 
-        while self.road.reinsert_car():
-            pass
+        for _ in range(len(off_the_road)):
+            off_car = self.road.vehicles.pop(-1)
+            off_car.location -= 1000
+            if off_car.location >= off_car.size - 1:
+                off_car.update_bumper()
+            else:
+                off_car.bumper = off_car.location - (off_car.size -1) + 1000
+            self.road.vehicles.insert(0, off_car)
 
 
 
