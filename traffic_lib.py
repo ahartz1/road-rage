@@ -96,19 +96,20 @@ class HighwaySim:
     def __init__(self):
         self.road = Road()
         self.ticks = 0
-        self.is_traffic = []
+        self.car_speeds = []
+        self.sim_data = []
+        self.mean = None
 
     def run_sim(self, duration=1):
+        self.sim_data.append(np.repeat(self.road.vehicles[0].speed, 30).tolist())
         while self.ticks < duration:
             self.iterate()
             self.ticks += 1
-        if self.is_traffic.count(True) > 0:
-            return True
-        else:
-            return False
+        return self.mean
 
     def iterate(self):
         off_the_road = []
+        self.car_speeds = []
         num_cars = len(self.road.vehicles)
         for idx in range(num_cars):
             v = self.road.vehicles[- idx - 1]
@@ -131,10 +132,7 @@ class HighwaySim:
             else:
                 v.gap = car_ahead.bumper + 1000 - v.location
 
-            if v.speed == 0:
-                self.is_traffic.append(True)
-            else:
-                self.is_traffic.append(False)
+            self.car_speeds.append(v.speed)
 
         while len(off_the_road) > 0:
             off_car = self.road.vehicles.pop(-1)
@@ -146,10 +144,8 @@ class HighwaySim:
             self.road.vehicles.insert(0, off_car)
             off_the_road.pop(0)
 
-
-
-
-
+        self.sim_data.append(self.car_speeds)
+        self.mean = np.mean(np.array(self.sim_data))
 
 
 
