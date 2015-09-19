@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import random
+from copy import deepcopy
 
 
 class Car:
@@ -24,52 +25,29 @@ class Car:
         self.update_bumper()
 
     def __str__(self):
-        return 'Car(location={},gap={},speed={})'.format(self.location, self.gap, self.speed)
+        return 'Car(location={},gap={},speed={})'.format(
+                self.location, self.gap, self.speed)
 
     def __repr__(self):
         return self.__str__()
 
     def drive(self, car_ahead):
 
-        if self.stop(car_ahead):
-            pass
-
-        elif self.match_speed(car_ahead):
-            pass
-
-        elif self.random_slowdown(car_ahead):
-            pass
-
-        elif self.accelerate(car_ahead):
-            pass
-
-        self.update_location(car_ahead)
-
-    def stop(self, car_ahead):
         if self.location + self.speed >= car_ahead.bumper:
             self.speed = 0
             self.location = car_ahead.bumper - 1
-            return True
-
-    def match_speed(self, car_ahead):
-        if self.location + self.speed < car_ahead.bumper - self.speed:
+        elif self.location + self.speed > car_ahead.bumper - self.speed:
             self.speed = car_ahead.speed
-            return True
-
-    def random_slowdown(self, car_ahead):
-        if random.random() < 0.1:
+        elif random.random() < 0.1:
             self.speed -= 2
             if self.speed < 0:
                 self.speed = 0
-            return True
-
-    def accelerate(self, car_ahead):
-        if self.speed < self.desired_speed:
-            if self.desired_speed - self.speed <= 2:
+        elif self.speed < self.desired_speed:
+            self.speed += 2
+            if self.speed > self.desired_speed:
                 self.speed = self.desired_speed
-            else:
-                self.speed += 2
-            return True
+
+        self.update_location(car_ahead)
 
     def update_location(self, car_ahead):
         self.location += self.speed
@@ -95,10 +73,10 @@ class Road:
     Collaborators:
     - Car
     """
-    def __init__(self, num_trucks=0):
+    def __init__(self, num_trucks=0, start_num=0):
         self.total_vehicle_space = ((30 - num_trucks) * 5) + (num_trucks * 25)
-        self.initial_gap = (1000 - self.total_vehicle_space) // 30
-        self.vehicles = [Car((4 + 33*n), self.initial_gap) for n in range(30 - num_trucks)]
+        self.initial_gap = int((1000 - self.total_vehicle_space) / 30)
+        self.vehicles = [Car((4 + int(33.3333333*n)), self.initial_gap) for n in range(30 - num_trucks)]
 
         if num_trucks > 0:
             [self.vehicles.append(Truck() for _ in range(num_trucks))]
@@ -147,10 +125,13 @@ class HighwaySim:
     def iterate(self):
         for idx, v in enumerate(self.road.vehicles):
             if idx > 0:
-                car_ahead = self.road.vehicles[- idx - 1]
+                car_ahead = deepcopy(self.road.vehicles[- idx - 1])
             else:
-                car_ahead = Car(self.road.vehicles[0].location + 1000, self.road.vehicles[0].gap, 33,
-                                self.road.vehicles[0].speed)
+                car_ahead = deepcopy(self.road.vehicles[0])
+                car_ahead.location += 1000
+                if car_ahead.gap < car_ahead.speed:
+                    car_ahead.location += car_ahead.gap
+                car_ahead.update_bumper()
 
             v.drive(car_ahead)
 
@@ -161,3 +142,23 @@ class HighwaySim:
 
         for n in range(30):
             self.road.reinsert_car()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#
