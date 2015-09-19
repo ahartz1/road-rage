@@ -115,7 +115,8 @@ class HighwaySim:
 
     def iterate(self):
         off_the_road = []
-        for idx, v in enumerate(self.road.vehicles):
+        for idx in range(len(self.road.vehicles)):
+            v = self.road.vehicles[-idx - 1]
             if idx > 0:
                 car_ahead = deepcopy(self.road.vehicles[- idx])
             else:
@@ -129,7 +130,7 @@ class HighwaySim:
 
             if v.drive(car_ahead) == 'off the road':
                 off_the_road.insert(0, v)
-            v.gap = car_ahead.bumper - v.location # Why is this so wrong?
+            v.gap = car_ahead.bumper - v.location
             v.update_bumper()
 
             if v.speed == 0:
