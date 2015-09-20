@@ -71,10 +71,12 @@ class Road:
     Collaborators:
     - Car
     """
-    def __init__(self):
+    def __init__(self, speed_limit=33):
+        self.speed_limit = speed_limit
         self.total_vehicle_space = (30 * 5)
         self.initial_gap = int((1000 - self.total_vehicle_space) / 30)
-        self.vehicles = [Car((4 + int(33.333333333*n)),n, self.initial_gap) for n in range(30)]
+        self.vehicles = [Car((4 + int(33.333333333*n)),n, self.initial_gap,
+                         speed_limit=self.speed_limit) for n in range(30)]
         self.vehicles[-1].gap = (1000 - self.vehicles[-1].location)
 
 
@@ -93,8 +95,8 @@ class HighwaySim:
     - Road
     """
 
-    def __init__(self):
-        self.road = Road()
+    def __init__(self, speed_limit=33):
+        self.road = Road(speed_limit)
         self.ticks = 0
         self.car_speeds = []
         self.sim_data = []
@@ -139,9 +141,12 @@ class HighwaySim:
             self.car_speeds.append(v.speed)
 
             if v.location <= 1000:
-                self.tick_graph[v.bumper:(v.location + 1)] = 0
+                self.tick_graph[v.bumper:(v.location + 1)] = 0.5 - (v.car_id % 2) * 0.5
             else:
-                self.tick_graph[v.bumper:(v.location + 1001)] = 0
+                if v.bumper <= 1000:
+                    self.tick_graph[v.bumper:(v.location + 1001)] = 0.5 - (v.car_id % 2) * 0.5
+                else:
+                    self.tick_graph[(v.bumper + 1000):(v.location + 1001)] = 0.5 - (v.car_id % 2) * 0.5
 
         while len(off_the_road) > 0:
             off_car = self.road.vehicles.pop(-1)
