@@ -98,18 +98,22 @@ class HighwaySim:
         self.ticks = 0
         self.car_speeds = []
         self.sim_data = []
+        self.tick_graph = []
+        self.sim_graph = []
         self.mean = None
 
     def run_sim(self, duration=1):
-        self.sim_data.append(np.repeat(self.road.vehicles[0].speed, 30).tolist())
+        # self.sim_data.append(np.repeat(self.road.vehicles[0].speed, 30).tolist())
         while self.ticks < duration:
             self.iterate()
             self.ticks += 1
+        self.mean = np.mean(np.array(self.sim_data[-1]))
         return self.mean
 
     def iterate(self):
         off_the_road = []
         self.car_speeds = []
+        self.tick_graph = np.repeat(1, 1000)
         num_cars = len(self.road.vehicles)
         for idx in range(num_cars):
             v = self.road.vehicles[- idx - 1]
@@ -134,6 +138,11 @@ class HighwaySim:
 
             self.car_speeds.append(v.speed)
 
+            if v.location <= 1000:
+                self.tick_graph[v.bumper:(v.location + 1)] = 0
+            else:
+                self.tick_graph[v.bumper:(v.location + 1001)] = 0
+
         while len(off_the_road) > 0:
             off_car = self.road.vehicles.pop(-1)
             off_car.location -= 1000
@@ -145,7 +154,8 @@ class HighwaySim:
             off_the_road.pop(0)
 
         self.sim_data.append(self.car_speeds)
-        self.mean = np.mean(np.array(self.sim_data))
+        self.sim_graph.append(self.tick_graph.tolist())
+
 
 
 
