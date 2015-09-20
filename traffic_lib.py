@@ -105,7 +105,6 @@ class HighwaySim:
         self.mean = None
 
     def run_sim(self, duration=1):
-        # self.sim_data.append(np.repeat(self.road.vehicles[0].speed, 30).tolist())
         while self.ticks < duration:
             self.iterate()
             self.ticks += 1
@@ -141,12 +140,12 @@ class HighwaySim:
             self.car_speeds.append(v.speed)
 
             if v.location <= 1000:
-                self.tick_graph[v.bumper:(v.location + 1)] = 0.5 - (v.car_id % 2) * 0.5
+                self.tick_graph[v.bumper:(v.location + 1)] = 0
             else:
                 if v.bumper <= 1000:
-                    self.tick_graph[v.bumper:(v.location + 1001)] = 0.5 - (v.car_id % 2) * 0.5
+                    self.tick_graph[v.bumper:(v.location + 1001)] = 0
                 else:
-                    self.tick_graph[(v.bumper + 1000):(v.location + 1001)] = 0.5 - (v.car_id % 2) * 0.5
+                    self.tick_graph[(v.bumper + 1000):(v.location + 1001)] = 0
 
         while len(off_the_road) > 0:
             off_car = self.road.vehicles.pop(-1)
