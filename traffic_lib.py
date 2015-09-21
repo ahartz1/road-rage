@@ -79,13 +79,14 @@ class Road:
         self.vehicles = []
         self.place_cars()
 
-    def num_cars(self):
-        return len(self.vehicles)
-
     def place_cars(self):
         self.vehicles = [Car((4 + int(33.333333333*n)),n, self.initial_gap,
                          speed_limit=self.speed_limit) for n in range(30)]
         self.vehicles[-1].gap = (1000 - self.vehicles[-1].location)
+
+    def num_cars(self):
+        return len(self.vehicles)
+
 
 class HighwaySim:
     """
@@ -103,28 +104,29 @@ class HighwaySim:
     """
 
     def __init__(self, speed_limit=33, mode=0):
-        self.roads = []
+        self.speed_limit = speed_limit
         self.mode = mode
+        self.roads = []
         self.ticks = 0
         self.car_speeds = []
         self.sim_data = []
         self.tick_graph = []
         self.sim_graph = []
         self.mean = None
-        self.add_roads(self.mode)
+        self.add_roads()
         self.num_roads = len(self.roads)
 
-    def add_roads(self, mode):
-        if mode == 0:
-            self.roads.append(Road(speed_limit))
-        elif mode == 1:
-            self.roads.append(Road(speed_limit))
-            self.roads.append(Road(speed_limit, slow_factor=1.4))
-            self.roads.append(Road(speed_limit))
-            self.roads.append(Road(speed_limit, slow_factor=2))
-            self.roads.append(Road(speed_limit))
-            self.roads.append(Road(speed_limit, slow_factor=1.2))
-            self.roads.append(Road(speed_limit))
+    def add_roads(self):
+        if self.mode == 0:
+            self.roads.append(Road(self.speed_limit))
+        elif self.mode == 1:
+            self.roads.append(Road(self.speed_limit))
+            self.roads.append(Road(self.speed_limit, slow_factor=1.4))
+            self.roads.append(Road(self.speed_limit))
+            self.roads.append(Road(self.speed_limit, slow_factor=2))
+            self.roads.append(Road(self.speed_limit))
+            self.roads.append(Road(self.speed_limit, slow_factor=1.2))
+            self.roads.append(Road(self.speed_limit))
 
     def run_sim(self, duration=1):
         while self.ticks < duration:
@@ -136,19 +138,43 @@ class HighwaySim:
 
     def iterate(self):
         self.car_speeds = []
-        self.tick_graph = np.repeat(1, (1000 * self.num_roads)
+        self.tick_graph = np.repeat(1, (1000 * self.num_roads))
+        off_the_road = [[] for _ in range(self.num_roads)]
         for n, r in enumerate(self.roads):
-            off_the_road = []
-            num_cars = len(r)
-            for idx in range(num_cars):
+            r_num_cars = r.num_cars()
+            del_bumper = False
+            for idx in range(r_num_cars):
                 v = r.vehicles[- idx - 1]
                 if idx > 0:
                     car_ahead = deepcopy(r.vehicles[- idx])
                 else:
-                    if n < self.num_roads):
-                        car_ahead = deepcopy(self.roads[n + 1].vehicles[0])
+                    # If we're looking at the last car on the road, the "next"
+                    # car will be the [1] car if only bumper is on previous road
+                    # In the 1 road scenario, bumper only is moved to begining
+                    # and we add 1000 to bumper to accommodate
+                    if n < (self.num_roads - 1) and self.num_roads > 1:
+                        if len(self.roads[n + 1].vehicles) > 0:
+                            car_ahead = deepcopy(self.roads[n + 1].vehicles[0])
+                        else:
+                            car_ahead = Car(150, 0)
+                        if car_ahead.location - car_ahead.size + 1 < 0:
+                            if len(self.roads[n + 1].vehicles) > 2:
+                                car_ahead = deepcopy(self.roads[n + 1].vehicles[1])
+                            else:
+                                car_ahead.location = 150
+                    elif n == (self.num_roads - 1) and self.num_roads > 1:
+                        if len(self.roads[0].vehicles) > 0:
+                            car_ahead = deepcopy(self.roads[0].vehicles[0])
+                        else:
+                            car_ahead = Car(150, 0)
+                        if car_ahead.location - car_ahead.size + 1 < 0:
+                            if len(self.roads[0].vehicles) > 1:
+                                car_ahead = deepcopy(self.roads[0].vehicles[1])
+                            else:
+                                car_ahead.location = 150
                     else:
                         car_ahead = deepcopy(self.roads[0].vehicles[0])
+
                     car_ahead.location += 1000
                     if car_ahead.gap < car_ahead.speed:
                         car_ahead.location += car_ahead.gap
@@ -156,8 +182,11 @@ class HighwaySim:
                         car_ahead.location += car_ahead.speed
                     car_ahead.bumper = car_ahead.location - car_ahead.size + 1
 
+                if v.location - v.size + 1 < 0 and self.num_roads > 1:
+                    del_bumper = True
+
                 if v.drive(car_ahead, r.slow_factor):
-                    off_the_road.append(- idx - 1)
+                    off_the_road[n].append(- idx - 1)
 
                 if car_ahead.bumper - v.location > 0:
                     v.gap = car_ahead.bumper - v.location
@@ -177,18 +206,31 @@ class HighwaySim:
                         self.tick_graph[(v.bumper + 1000 + (n * 1000)):
                                         (v.location + 1001 + (n * 1000))] = 0
 
-            while len(off_the_road) > 0:
-                off_car = r.vehicles.pop(-1)
+            # Delete cars who started with only a bumper in this road section
+            if del_bumper and self.num_roads > 1:
+                del r.vehicles[-1]
+
+        # Add cars whose location is beyond this road section to next road section
+        # Keep car in current section if bumper is still inside this road section
+        for m, off_list in enumerate(off_the_road):
+            bumper_only = None
+            while len(off_the_road[m]) > 0:
+                off_car = deepcopy(self.roads[m].vehicles[-1])
                 off_car.location -= 1000
                 if off_car.location >= off_car.size - 1:
                     off_car.update_bumper()
                 else:
                     off_car.bumper = off_car.location - off_car.size + 1 + 1000
-                if n < self.num_roads:
-                    self.roads[n + 1].vehicles.insert(0, off_car)
+                    if self.num_roads > 1:
+                        bumper_only = deepcopy(self.roads[m].vehicles[-1])
+                del self.roads[m].vehicles[-1]
+                if m < (self.num_roads - 1) and self.num_roads > 1:
+                    self.roads[m + 1].vehicles.insert(0, off_car)
                 else:
                     self.roads[0].vehicles.insert(0, off_car)
-                off_the_road.pop(0)
+                del off_the_road[m][0]
+            if self.num_roads > 1 and type(bumper_only) == Car:
+                self.roads[m].vehicles.append(bumper_only)
 
         self.sim_data.append(self.car_speeds)
         self.sim_graph.append(self.tick_graph.tolist())
