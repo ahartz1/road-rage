@@ -24,6 +24,8 @@ class Car:
         self.bumper = 0
         self.update_bumper()
         self.car_id = car_id
+        self.acceleration = 2
+        self.slowing_chance = 0.1
 
     def __str__(self):
         return 'Car(location={},car_id={},bumper={},gap={},speed={})'.format(
@@ -37,14 +39,14 @@ class Car:
         if self.location + self.speed >= car_ahead.bumper:
             self.speed = 0
             self.location = car_ahead.bumper - 1
-        elif self.location + self.speed > car_ahead.bumper - self.speed:
+        elif self.location + self.speed > car_ahead.bumper - self.safety_gap():
             self.speed = car_ahead.speed
-        elif random.random() < (0.1 * slow_factor):
+        elif random.random() < (self.slowing_chance * slow_factor):
             self.speed -= 2
             if self.speed < 0:
                 self.speed = 0
         elif self.speed < self.desired_speed:
-            self.speed += 2
+            self.speed += self.acceleration
             if self.speed > self.desired_speed:
                 self.speed = self.desired_speed
 
@@ -55,9 +57,27 @@ class Car:
         else:
             return False
 
+    def safety_gap(self):
+        return self.speed
+
     def update_bumper(self):
         self.bumper = self.location - self.size + 1
 
+
+class BigRig(Car):
+    def __init__(self):
+        super().__init__(self, location, car_id, speed_limit=28)
+        self.size = 25
+        self.acceleration = 1.5
+
+    def safety_gap(self):
+        return self.speed * 2
+
+class Aggressive(Car):
+    def __init__(self):
+        super().__init__(self, location, car_id, speed_limit=39)
+        self.acceleration = 5
+        self.slowing_chance = 0.05
 
 class Road:
     """
